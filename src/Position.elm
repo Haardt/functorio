@@ -1,4 +1,4 @@
-module Position exposing (X, Y, equal, Position)
+module Position exposing (Position, X, Y, equal, getPositionFromInt, createPosition)
 
 
 type alias X =
@@ -13,6 +13,23 @@ type alias Position =
     { x : X
     , y : Y
     }
+
+
+getPositionFromInt : Int -> Position
+getPositionFromInt num =
+    let
+        y =
+            floor (toFloat num / 20)
+
+        x =
+            num - (y * 20)
+    in
+    {x = x, y = y}
+
+
+createPosition : Int -> Int -> Position
+createPosition x y =
+    { x = x, y = y }
 
 
 equal : Position -> Position -> Bool

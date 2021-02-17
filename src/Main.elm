@@ -1,17 +1,15 @@
 module Main exposing (Model, Msg, init, main, subscriptions, update, view)
 
-import Animation exposing (backgroundColor)
 import Board exposing (Board)
 import Browser
 import Browser.Navigation as Nav
-import Cell
-import Element exposing (Element, column, el, fill, height, layout, paddingEach, px, rgb, text, width, wrappedRow)
+import Element exposing (Element, el, fill, height, layout, paddingEach, px, rgb, text, width, wrappedRow)
 import Element.Background as Background
 import Element.Border as Border
 import Field exposing (Field(..))
-import FontAwesome exposing (box)
 import GameInit exposing (Game, createGameModel)
 import Url
+import Position exposing (createPosition, getPositionFromInt)
 
 
 
@@ -91,7 +89,7 @@ subscriptions _ =
 
 view : Model -> Browser.Document Msg
 view model =
-    { title = "Facto"
+    { title = "Factorio"
     , body =
         [ layout
             [ paddingEach { top = 20, right = 20, left = 20, bottom = 20 }
@@ -113,20 +111,14 @@ viewBoard board =
     in
     List.map
         (\pos ->
-            let
-                y =
-                    floor (toFloat pos / 20)
-
-                x =
-                    pos - (y * 20)
-            in
-            Board.getFieldAtPosition board { x = x, y = y } |> box x y
+            getPositionFromInt pos |> Board.getFieldAtPosition board |> box
         )
         length
 
+-- Move to field
 
-box : Int -> Int -> Field -> Element msg
-box x y field =
+box : Field -> Element msg
+box field =
     let
         color =
             case field of
@@ -141,7 +133,3 @@ box x y field =
     in
     el [ Border.width 1, Border.solid, Border.color (rgb 0.25 0.25 0.25), width <| px 64, height <| px 64, Background.color color ]
         (text "")
-
-
-
---(text ("x:" ++ String.fromInt x ++ "y:" ++ String.fromInt y ++ ""))
