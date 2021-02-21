@@ -1,15 +1,13 @@
-module Main exposing (Model, Msg, init, main, subscriptions, update, view)
+module Main exposing (Model, init, main, subscriptions, update, view)
 
 import Board exposing (Board)
 import Browser
 import Browser.Navigation as Nav
-import Element exposing (Element, el, fill, height, layout, paddingEach, px, rgb, text, width, wrappedRow)
-import Element.Background as Background
-import Element.Border as Border
-import Field exposing (Field(..))
-import GameInit exposing (Game, createGameModel)
+import Element exposing (Element, alignTop, column, fill, height, layout, paddingEach, px, row, text, width, wrappedRow)
+import GameInit exposing (createGameModel)
+import GameModel exposing (Game)
+import Message exposing (Msg(..))
 import Url
-import Position exposing (createPosition, getPositionFromInt)
 
 
 
@@ -52,11 +50,6 @@ init flags url key =
 -- UPDATE
 
 
-type Msg
-    = LinkClicked Browser.UrlRequest
-    | UrlChanged Url.Url
-
-
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
@@ -70,6 +63,16 @@ update msg model =
 
         UrlChanged url ->
             ( { model | url = url }
+            , Cmd.none
+            )
+
+        BoardMsg board ->
+            ( { model
+                | game =
+                    { board = (Tuple.first (Board.updateBoard board model.game.board))
+                    , playerName = model.game.playerName
+                    }
+              }
             , Cmd.none
             )
 
@@ -89,7 +92,7 @@ subscriptions _ =
 
 view : Model -> Browser.Document Msg
 view model =
-    { title = "Factorio"
+    { title = "Functorio"
     , body =
         [ layout
             [ paddingEach { top = 20, right = 20, left = 20, bottom = 20 }
@@ -97,39 +100,17 @@ view model =
             , height fill
             ]
           <|
-            wrappedRow [ width <| px (64 * 20) ] <|
-                viewBoard model.game.board
+            row [ width fill, height fill ]
+                [ column [ width <| px (64 * 20), alignTop ]
+                    [ wrappedRow [ width <| px (64 * 20) ] <|
+                        (Board.viewBoard model.game.board
+                            |> List.map (Element.map BoardMsg)
+                        )
+                    ]
+                , column [ fill |> width, alignTop ]
+                    [ text "Hallo"
+                    , text "Hallo"
+                    ]
+                ]
         ]
     }
-
-
-viewBoard : Board -> List (Element msg)
-viewBoard board =
-    let
-        length =
-            List.range 0 (20 * 12 - 1)
-    in
-    List.map
-        (\pos ->
-            getPositionFromInt pos |> Board.getFieldAtPosition board |> box
-        )
-        length
-
--- Move to field
-
-box : Field -> Element msg
-box field =
-    let
-        color =
-            case field of
-                WarehouseFloor ->
-                    rgb 1.0 0.0 0
-
-                Belt data ->
-                    rgb 0.0 1.0 0
-
-                EmptyField ->
-                    rgb 0.3 0.3 0.3
-    in
-    el [ Border.width 1, Border.solid, Border.color (rgb 0.25 0.25 0.25), width <| px 64, height <| px 64, Background.color color ]
-        (text "")

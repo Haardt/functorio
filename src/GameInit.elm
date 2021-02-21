@@ -1,21 +1,16 @@
-module GameInit exposing (Game, createGameModel)
+module GameInit exposing (createGameModel)
 
-import Board exposing (Board)
 import Cell exposing (Cell(..))
 import Dict
 import Field exposing (Field(..))
-
-
-type alias Game =
-    { board : Board
-    , playerName : String
-    }
+import GameModel exposing (Game)
+import Position exposing (createPosition)
 
 
 createGameModel : String -> Game
 createGameModel playerName =
     { board =
-        { fields = Dict.singleton 66 WarehouseFloor
+        { fields = Dict.singleton 66 <| WarehouseFloor <| createPosition 6 6
         , viewPort =
             { pos =
                 { x = 0
