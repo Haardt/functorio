@@ -1,14 +1,16 @@
-module Board exposing (Board, Msg, ViewPort, getFieldAtPosition, getFieldFromCell, updateBoard, viewBoard)
+module Board exposing (Board, Msg(..), ViewPort, updateBoard, viewBoard)
 
-import Cell exposing (Cell(..), CellId, Cells)
+import Array
 import Dict exposing (Dict)
 import Element exposing (Element)
-import Field exposing (Field(..), Msg(..))
+import Field exposing (Field(..), FieldId, Msg(..), createFieldId, getFieldId)
+import Fields.Belt exposing (BeltType(..), Item(..), createBeltUp)
 import Position exposing (Position, createPosition, getPositionFromInt)
 
 
 type Msg
     = FieldMsg Field.Msg
+    | Tick
 
 
 type alias Zoom =
@@ -22,9 +24,8 @@ type alias ViewPort =
 
 
 type alias Board =
-    { fields : Dict CellId Field
+    { fields : Dict FieldId Field
     , viewPort : ViewPort
-    , cells : Cells
     }
 
 
@@ -36,59 +37,78 @@ updateBoard msg model =
                 LeftClickOnField fieldType ->
                     case fieldType of
                         WarehouseFloor pos ->
-                            ( model, Cmd.none )
-
-                        EmptyField pos ->
                             let
-                                id = Maybe.withDefault 0 <| String.toInt <| String.fromInt pos.x ++ String.fromInt pos.y
+                                id =
+                                    createFieldId pos.x pos.y
+
                                 newModel =
                                     { model
                                         | fields =
-                                            Dict.insert id (WarehouseFloor pos) model.fields
-                                        , cells = model.cells ++ [Cell {id = id, pos = pos}]
+                                            Dict.insert id (
+                                            Belt (createBeltUp pos)) model.fields
                                     }
                             in
                             ( newModel, Cmd.none )
 
-                        Belt data ->
+                        Belt _ ->
                             ( model, Cmd.none )
 
+        Tick ->
+            let
+                belts =
+                    Dict.values model.fields
+                        |> List.filter Field.isBelt
+                        |> List.map getBeltType
+                        |> List.filterMap identity
 
-viewBoard : Board -> List (Element Msg)
-viewBoard board =
-    let
-        length =
-            List.range 0 (20 * 12 - 1)
-    in
-    List.map
-        (\pos ->
-            getPositionFromInt pos
-                |> getFieldAtPosition board
-                |> Field.viewField
-                |> Element.map FieldMsg
-        )
-        length
-
-
-
--- Move to field
-
-
-getFieldAtPosition : Board -> Position -> Field
-getFieldAtPosition board position =
-    case Cell.getCellAtPosition board.cells position of
-        Cell cell ->
-            getFieldFromCell position board (Cell cell)
-
-        EmptyCell ->
-            EmptyField position
+                updatedBelts =
+                    List.map (transportItems belts) belts
+                    |> List.map (\n -> ( getFieldId n, Belt n ))
+                    |> Dict.fromList
+            in
+            ( { model
+                | fields =
+                    Dict.union updatedBelts model.fields
+              }
+            , Cmd.none
+            )
 
 
-getFieldFromCell : Position -> Board -> Cell -> Field
-getFieldFromCell pos board cell =
-    case cell of
-        Cell idCell ->
-            Maybe.withDefault (EmptyField idCell.pos) <| Dict.get idCell.id board.fields
+transportItems : List BeltType -> BeltType -> BeltType
+transportItems beltTypes beltType =
+    case beltType of
+        BeltUp item beltField ->
+            BeltUp item { beltField | pos = createPosition beltField.pos.x (beltField.pos.y - 1) }
 
-        EmptyCell ->
-            EmptyField pos
+
+getBeltType : Field -> Maybe BeltType
+getBeltType field =
+    case field of
+        Belt (BeltUp item data) ->
+            BeltUp item data |> Just
+
+        _ ->
+            Nothing
+
+
+viewBoard : Board -> Int -> List (Element Msg) -> List (Element Msg)
+viewBoard board pos resultList =
+    if pos == -1 then
+        resultList
+
+    else
+        viewBoard board
+            (pos - 1)
+            (resultList
+                ++ [ getPositionFromInt pos
+                        |> getFieldFromId board
+                        |> Field.viewField
+                        |> Element.map FieldMsg
+                   ]
+            )
+
+
+getFieldFromId : Board -> Position -> Field
+getFieldFromId board pos =
+    Dict.get (createFieldId pos.x pos.y) board.fields
+        |> Maybe.withDefault (WarehouseFloor pos)

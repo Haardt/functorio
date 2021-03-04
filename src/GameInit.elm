@@ -1,6 +1,5 @@
 module GameInit exposing (createGameModel)
 
-import Cell exposing (Cell(..))
 import Dict
 import Field exposing (Field(..))
 import GameModel exposing (Game)
@@ -18,7 +17,6 @@ createGameModel playerName =
                 }
             , z = 1
             }
-        , cells = [ Cell { id = 66, pos = { x = 8, y = 8 } } ]
         }
     , playerName = playerName
     }

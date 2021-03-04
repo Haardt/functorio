@@ -1,56 +1,78 @@
-module Field exposing (Direction(..), Field(..), FieldId(..), WarehouseFloor(..), viewField, Msg(..))
+module Field exposing (Field(..), FieldId, Msg(..), createFieldId, fieldSize, isBelt, viewField, getFieldId)
 
-import Element exposing (Element, el, height, mouseOver, px, rgb, text, width)
+import Array exposing (Array)
+import Basics exposing (identity)
+import Element exposing (Color, Element, column, el, height, mouseOver, px, rgb, row, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events
+import Fields.Belt as Belt exposing (BeltField, BeltType(..))
 import Position exposing (Position)
 
-type Msg =
-    LeftClickOnField Field
 
-type Direction
-    = Up
-    | Down
-    | Left
-    | Right
+type Msg
+    = LeftClickOnField Field
 
+fieldSize =
+    64
 
-type FieldId
-    = Int
+type Field
+    = WarehouseFloor Position
+    | Belt BeltType
 
-
-type WarehouseFloor
-    = Field
+type alias FieldId =
+    Int
 
 
-type alias BeltField =
-    { direction : Direction
-    , thing : Int
-    , pos: Position
+createFieldId : Int -> Int -> FieldId
+createFieldId x y =
+    String.fromInt x
+        ++ String.fromInt y
+        |> String.toInt
+        |> Maybe.withDefault 0
+
+getFieldId : BeltType -> FieldId
+getFieldId beltType =
+    let
+        x =
+            case beltType of
+                BeltUp item beltField -> beltField.pos.x
+
+        y =
+            case beltType of
+                BeltUp item beltField -> beltField.pos.y
+    in
+    String.fromInt x
+        ++ String.fromInt y
+        |> String.toInt
+        |> Maybe.withDefault 0
+
+type alias Item =
+    { squareSize : Int
     }
 
 
-type Field
-    = EmptyField Position
-    | WarehouseFloor Position
-    | Belt BeltField
+isBelt : Field -> Bool
+isBelt field =
+    case field of
+        WarehouseFloor _ ->
+            False
 
+        Belt _ ->
+            True
 
 viewField : Field -> Element Msg
 viewField field =
-    let
-        (color, pos) =
-            case field of
-                WarehouseFloor fieldPos ->
-                    (rgb 1.0 0.0 0, fieldPos)
+    case field of
+        WarehouseFloor x ->
+            viewStandardField (rgb 1.0 0.0 0) (WarehouseFloor x)
 
-                Belt data ->
-                    (rgb 0.0 1.0 0, data.pos)
+        Belt beltType ->
+            Belt.viewBelt beltType
 
-                EmptyField fieldPos ->
-                    (rgb 0.3 0.3 0.3, fieldPos)
-    in
+
+viewStandardField : Color -> Field -> Element Msg
+viewStandardField color field =
     el
         [ mouseOver
             [ Background.color (rgb 0.65 0.65 0.65)
@@ -58,9 +80,13 @@ viewField field =
         , Border.width 1
         , Border.solid
         , Border.color (rgb 0.25 0.25 0.25)
-        , width <| px 64
-        , height <| px 64
+        , width <| px fieldSize
+        , height <| px fieldSize
         , Background.color color
         , Element.Events.onClick <| LeftClickOnField field
         ]
-        (text ("" ++ String.fromInt pos.x))
+        (row []
+            [ column []
+                []
+            ]
+        )

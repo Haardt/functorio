@@ -7,6 +7,8 @@ import Element exposing (Element, alignTop, column, fill, height, layout, paddin
 import GameInit exposing (createGameModel)
 import GameModel exposing (Game)
 import Message exposing (Msg(..))
+import Task
+import Time exposing (posixToMillis)
 import Url
 
 
@@ -34,6 +36,7 @@ type alias Model =
     { key : Nav.Key
     , url : Url.Url
     , game : Game
+    , time : Int
     }
 
 
@@ -43,7 +46,9 @@ init flags url key =
         game =
             createGameModel "Unknown"
     in
-    ( Model key url game, Cmd.none )
+    ( Model key url game (Time.posixToMillis (Time.millisToPosix 0))
+    , Cmd.none
+    )
 
 
 
@@ -69,7 +74,18 @@ update msg model =
         BoardMsg board ->
             ( { model
                 | game =
-                    { board = (Tuple.first (Board.updateBoard board model.game.board))
+                    { board = Tuple.first (Board.updateBoard board model.game.board)
+                    , playerName = model.game.playerName
+                    }
+              }
+            , Cmd.none
+            )
+
+        Tick posix ->
+            ( { model
+                | time = Time.posixToMillis posix
+                , game =
+                    { board = Tuple.first (Board.updateBoard Board.Tick model.game.board)
                     , playerName = model.game.playerName
                     }
               }
@@ -83,7 +99,7 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Sub.none
+    Time.every 1000 Tick
 
 
 
@@ -103,12 +119,12 @@ view model =
             row [ width fill, height fill ]
                 [ column [ width <| px (64 * 20), alignTop ]
                     [ wrappedRow [ width <| px (64 * 20) ] <|
-                        (Board.viewBoard model.game.board
+                        (Board.viewBoard model.game.board (20 * 12 - 1) []
                             |> List.map (Element.map BoardMsg)
                         )
                     ]
                 , column [ fill |> width, alignTop ]
-                    [ text "Hallo"
+                    [ text (String.fromInt model.time)
                     , text "Hallo"
                     ]
                 ]
