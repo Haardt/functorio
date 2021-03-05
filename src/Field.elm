@@ -1,7 +1,6 @@
 module Field exposing (Field(..), FieldId, Msg(..), createFieldId, fieldSize, isBelt, viewField, getFieldId)
 
-import Array exposing (Array)
-import Basics exposing (identity)
+import Basics
 import Element exposing (Color, Element, column, el, height, mouseOver, px, rgb, row, width)
 import Element.Background as Background
 import Element.Border as Border
@@ -55,11 +54,10 @@ type alias Item =
 isBelt : Field -> Bool
 isBelt field =
     case field of
-        WarehouseFloor _ ->
-            False
-
         Belt _ ->
             True
+        _ ->
+            False
 
 viewField : Field -> Element Msg
 viewField field =

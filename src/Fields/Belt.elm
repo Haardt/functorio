@@ -7,8 +7,25 @@ import Element.Border as Border
 import Position exposing (Position)
 
 
+type Item
+    = Copper
+    | Stone
+    | Empty
+
+
+type Container
+    = Left (Array Item)
+    | Right (Array Item)
+    | Both ( Array Item, Array Item )
+
+
+type alias BeltField =
+    { pos : Position
+    }
+
+
 type BeltType
-    = BeltUp (Array Item) BeltField
+    = BeltUp Container BeltField
 
 
 
@@ -17,24 +34,25 @@ type BeltType
 --| BeltRight (Array Item) BeltField
 
 
-type Item
-    = Copper
-    | Stone
-    | Empty
-
-
-type alias BeltField =
-    { pos : Position
-    }
-
-
 createBeltUp : Position -> BeltType
 createBeltUp pos =
-    BeltUp (Array.fromList [ Copper, Stone ]) { pos = pos }
+    BeltUp (Left <| Array.repeat 8 Empty) { pos = pos }
+
+
+map : (Container -> BeltField -> a) -> BeltType -> a
+map fn beltType =
+    case beltType of
+        BeltUp container beltField ->
+            fn container beltField
 
 
 viewBelt : BeltType -> Element msg
 viewBelt beltType =
+    beltType |> map viewItems
+
+
+viewItems : Container -> BeltField -> Element msg
+viewItems container { pos } =
     el
         [ mouseOver
             [ Background.color (rgb 0.65 0.65 0.65)
