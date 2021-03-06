@@ -7,6 +7,7 @@ import Element exposing (Element, alignTop, column, fill, height, layout, paddin
 import GameInit exposing (createGameModel)
 import GameModel exposing (Game)
 import Message exposing (Msg(..))
+import String exposing (toInt)
 import Task
 import Time exposing (posixToMillis)
 import Url
@@ -74,7 +75,7 @@ update msg model =
         BoardMsg board ->
             ( { model
                 | game =
-                    { board = Tuple.first (Board.updateBoard board model.game.board)
+                    { board = Tuple.first (Board.updateBoard board 0 model.game.board)
                     , playerName = model.game.playerName
                     }
               }
@@ -82,10 +83,14 @@ update msg model =
             )
 
         Tick posix ->
+            let
+                time =
+                    Time.posixToMillis posix
+            in
             ( { model
-                | time = Time.posixToMillis posix
+                | time = time
                 , game =
-                    { board = Tuple.first (Board.updateBoard Board.Tick model.game.board)
+                    { board = Tuple.first (Board.updateBoard Board.Tick time model.game.board)
                     , playerName = model.game.playerName
                     }
               }
@@ -99,7 +104,7 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Time.every 1000 Tick
+    Time.every 10 Tick
 
 
 
@@ -124,7 +129,10 @@ view model =
                         )
                     ]
                 , column [ fill |> width, alignTop ]
-                    [ text (String.fromInt model.time)
+                    [ text
+                        (if (model.time /= 0) then
+                            (String.fromInt <| modBy 10 (model.time // 1000))
+                        else "")
                     , text "Hallo"
                     ]
                 ]

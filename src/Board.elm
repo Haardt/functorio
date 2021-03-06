@@ -1,10 +1,11 @@
 module Board exposing (Board, Msg(..), ViewPort, updateBoard, viewBoard)
 
-import Array
 import Dict exposing (Dict)
 import Element exposing (Element)
 import Field exposing (Field(..), FieldId, Msg(..), createFieldId, getFieldId)
 import Fields.Belt exposing (BeltType(..), Item(..), createBeltUp)
+import Fields.Neighbour as Neighbour
+import Fields.Belt as Belt
 import Position exposing (Position, createPosition, getPositionFromInt)
 
 
@@ -29,8 +30,8 @@ type alias Board =
     }
 
 
-updateBoard : Msg -> Board -> ( Board, Cmd Msg )
-updateBoard msg model =
+updateBoard : Msg -> Int -> Board -> ( Board, Cmd Msg )
+updateBoard msg time model =
     case msg of
         FieldMsg field ->
             case field of
@@ -41,11 +42,23 @@ updateBoard msg model =
                                 id =
                                     createFieldId pos.x pos.y
 
+                                getFieldById =
+                                    \fieldId -> Dict.get fieldId model.fields
+
+                                neighbours =
+                                    Neighbour.getFieldIds pos
+                                        |> List.map getFieldById
+                                        |> List.filterMap identity
+                                        |> List.filter Field.isBelt
+                                        |> List.map getBeltType
+                                        |> List.filterMap identity
+
                                 newModel =
                                     { model
                                         | fields =
-                                            Dict.insert id (
-                                            Belt (createBeltUp pos)) model.fields
+                                            Dict.insert id
+                                                (Belt (createBeltUp neighbours pos))
+                                                model.fields
                                     }
                             in
                             ( newModel, Cmd.none )
@@ -63,8 +76,8 @@ updateBoard msg model =
 
                 updatedBelts =
                     List.map (transportItems belts) belts
-                    |> List.map (\n -> ( getFieldId n, Belt n ))
-                    |> Dict.fromList
+                        |> List.map (\n -> ( getFieldId n, Belt <| Belt.updateItemTransport time n ))
+                        |> Dict.fromList
             in
             ( { model
                 | fields =
@@ -77,15 +90,15 @@ updateBoard msg model =
 transportItems : List BeltType -> BeltType -> BeltType
 transportItems beltTypes beltType =
     case beltType of
-        BeltUp item beltField ->
-            BeltUp item { beltField | pos = createPosition beltField.pos.x (beltField.pos.y - 1) }
+        BeltNorth item beltField ->
+            BeltNorth item { beltField | pos = createPosition beltField.pos.x beltField.pos.y }
 
 
 getBeltType : Field -> Maybe BeltType
 getBeltType field =
     case field of
-        Belt (BeltUp item data) ->
-            BeltUp item data |> Just
+        Belt (BeltNorth item data) ->
+            BeltNorth item data |> Just
 
         _ ->
             Nothing

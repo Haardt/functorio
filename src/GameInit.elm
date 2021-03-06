@@ -9,7 +9,7 @@ import Position exposing (createPosition)
 createGameModel : String -> Game
 createGameModel playerName =
     { board =
-        { fields = Dict.singleton 66 <| WarehouseFloor <| createPosition 6 6
+        { fields = Dict.singleton "66" <| WarehouseFloor <| createPosition 6 6
         , viewPort =
             { pos =
                 { x = 0

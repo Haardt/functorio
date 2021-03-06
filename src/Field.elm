@@ -1,12 +1,12 @@
 module Field exposing (Field(..), FieldId, Msg(..), createFieldId, fieldSize, isBelt, viewField, getFieldId)
 
 import Basics
-import Element exposing (Color, Element, column, el, height, mouseOver, px, rgb, row, width)
+import Element exposing (Color, Element, column, el, height, mouseOver, px, rgb, row, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events
 import Fields.Belt as Belt exposing (BeltField, BeltType(..))
-import Position exposing (Position)
+import Position exposing (Position, createPosition)
 
 
 type Msg
@@ -20,31 +20,27 @@ type Field
     | Belt BeltType
 
 type alias FieldId =
-    Int
+    String
 
 
 createFieldId : Int -> Int -> FieldId
 createFieldId x y =
     String.fromInt x
         ++ String.fromInt y
-        |> String.toInt
-        |> Maybe.withDefault 0
 
 getFieldId : BeltType -> FieldId
 getFieldId beltType =
     let
         x =
             case beltType of
-                BeltUp item beltField -> beltField.pos.x
-
+                BeltNorth item beltField -> beltField.pos.x
         y =
             case beltType of
-                BeltUp item beltField -> beltField.pos.y
+                BeltNorth item beltField -> beltField.pos.y
+
     in
     String.fromInt x
         ++ String.fromInt y
-        |> String.toInt
-        |> Maybe.withDefault 0
 
 type alias Item =
     { squareSize : Int
@@ -83,8 +79,14 @@ viewStandardField color field =
         , Background.color color
         , Element.Events.onClick <| LeftClickOnField field
         ]
-        (row []
-            [ column []
-                []
-            ]
+        (let
+            pos = case field of
+                WarehouseFloor position -> position
+
+
+                Belt beltType -> createPosition 0 0
+
+
+        in
+        (text <| String.fromInt pos.x ++ ":"  ++ String.fromInt pos.y)
         )
