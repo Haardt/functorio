@@ -1,24 +1,20 @@
-module Fields.Belt exposing (BeltField, BeltType(..), Item(..), createBeltUp, viewBelt, updateItemTransport)
+module Fields.Belt exposing (BeltField, BeltType(..), Item(..), createBeltNorth, updateItemTransport, viewBelt)
 
 import Array exposing (Array)
-import Element exposing (Element, centerX, column, el, height, mouseOver, moveUp, padding, px, rgb, row, spacing, spacingXY, text, width)
+import Element exposing (Element, centerX, column, el, height, mouseOver, moveUp, px, rgb, row, spacingXY, text, width)
 import Element.Background as Background
 import Element.Border as Border
-import Element.Font exposing (center)
-import FontAwesome exposing (alignCenter)
 import Position exposing (Position, createPosition)
 
 
 type Item
-    = Copper
-    | Stone
-    | Empty
+    = Copper Position
+    | Stone Position
+    | Empty Position
 
 
-type Container
-    = Left (Array Item)
-    | Right (Array Item)
-    | Both ( Array Item, Array Item )
+type alias Container =
+    ( Array Item, Array Item )
 
 
 type Neighbour
@@ -28,7 +24,6 @@ type Neighbour
 
 type alias BeltField =
     { pos : Position
-    , itemTransportOffset : Int
     , neighbour : Neighbour
     }
 
@@ -73,26 +68,26 @@ getNeighbourByDirection direction pos neighbours =
         findNeighbour =
             \x y -> List.filter (isNeighbour x y) neighbours
     in
-    Maybe.withDefault NoNeighbour <| Maybe.map HasNeighbour <|
-        case direction of
-            North ->
-                List.head <| findNeighbour 0 -1
+    Maybe.withDefault NoNeighbour <|
+        Maybe.map HasNeighbour <|
+            case direction of
+                North ->
+                    List.head <| findNeighbour 0 -1
 
-            East ->
-                List.head <| findNeighbour 1 0
+                East ->
+                    List.head <| findNeighbour 1 0
 
-            South ->
-                List.head <| findNeighbour -1 0
+                South ->
+                    List.head <| findNeighbour -1 0
 
-            West ->
-                List.head <| findNeighbour 0 1
+                West ->
+                    List.head <| findNeighbour 0 1
 
 
-createBeltUp : List BeltType -> Position -> BeltType
-createBeltUp neighbours pos =
-    BeltNorth (Left <| Array.repeat 8 Empty)
+createBeltNorth : List BeltType -> Position -> BeltType
+createBeltNorth neighbours pos =
+    BeltNorth ( Array.repeat 3 <| Copper <| createPosition 0 0, Array.repeat 3 <| Copper <| createPosition 0 0 )
         { pos = pos
-        , itemTransportOffset = 0
         , neighbour = getNeighbourByDirection North pos neighbours
         }
 
@@ -110,13 +105,39 @@ updateItemTransport tick belt =
         transportOffset =
             modBy 20 (tick // 10)
     in
-    if transportOffset == 8 then
+    if transportOffset == 19 then
         Debug.log "move" belt
 
     else
         case belt of
-            BeltNorth container data ->
-                BeltNorth container { data | itemTransportOffset = transportOffset }
+            BeltNorth ( left, right ) data ->
+                let
+                    newPos : List Item
+                    newPos =
+                        List.map
+                            (\n ->
+                                Array.get n left
+                                    |> moveContainerItem 0 -1
+                            )
+                            [ 0, 1, 2 ]
+                in
+                BeltNorth ( Array.fromList newPos, right ) data
+
+
+moveContainerItem : Int -> Int -> Maybe Item -> Item
+moveContainerItem x y item =
+    case item of
+        Just (Copper pos) ->
+            Copper <| createPosition (pos.x - x) (pos.y - y)
+
+        Just (Stone pos) ->
+            Stone <| createPosition (pos.x - x) (pos.y - y)
+
+        Just (Empty pos) ->
+            Empty <| createPosition (pos.x - x) (pos.y - y)
+
+        Nothing ->
+            Empty <| createPosition 0 0
 
 
 
@@ -134,7 +155,7 @@ viewBelt beltType =
 
 
 viewItems : Container -> BeltField -> Maybe (Element msg)
-viewItems container { pos, itemTransportOffset } =
+viewItems ( left, right ) { pos } =
     Just <|
         el
             [ mouseOver
@@ -146,19 +167,26 @@ viewItems container { pos, itemTransportOffset } =
             , width <| px 64
             , height <| px 64
             , Background.color (rgb 0.0 1.0 0.0)
-
-            --, Element.Events.onClick <| LeftClickOnField beltType
             ]
-            (row [centerX, spacingXY 4 0]
-                [ column [spacingXY 10 6]
-                    [ viewItem <| toFloat itemTransportOffset
-                    , viewItem <| toFloat itemTransportOffset
-                    , viewItem <| toFloat itemTransportOffset
-                    ]
-                , column [spacingXY 10 6]
-                    [ viewItem <| toFloat itemTransportOffset
-                    , viewItem <| toFloat itemTransportOffset
-                    , viewItem <| toFloat itemTransportOffset
+            (row [ centerX, spacingXY 4 0 ]
+                [ column [ spacingXY 10 6 ]
+                    (Array.indexedMap
+                        (\index value ->
+                            case value of
+                                Copper position ->
+                                    viewItem <| toFloat position.y
+
+                                Stone position ->
+                                    viewItem <| toFloat position.y
+
+                                Empty position ->
+                                    viewItem <| toFloat position.y
+                        )
+                        left
+                        |> Array.toList
+                    )
+                , column [ spacingXY 10 6 ]
+                    [ viewItem <| toFloat 0
                     ]
                 ]
             )

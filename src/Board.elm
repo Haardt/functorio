@@ -3,7 +3,7 @@ module Board exposing (Board, Msg(..), ViewPort, updateBoard, viewBoard)
 import Dict exposing (Dict)
 import Element exposing (Element)
 import Field exposing (Field(..), FieldId, Msg(..), createFieldId, getFieldId)
-import Fields.Belt exposing (BeltType(..), Item(..), createBeltUp)
+import Fields.Belt exposing (BeltType(..), Item(..), createBeltNorth)
 import Fields.Neighbour as Neighbour
 import Fields.Belt as Belt
 import Position exposing (Position, createPosition, getPositionFromInt)
@@ -57,7 +57,7 @@ updateBoard msg time model =
                                     { model
                                         | fields =
                                             Dict.insert id
-                                                (Belt (createBeltUp neighbours pos))
+                                                (Belt (createBeltNorth neighbours pos))
                                                 model.fields
                                     }
                             in
